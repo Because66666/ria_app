@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">ria_app</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_sign_in">签到</string>
+    <string name="title_map">地图</string>
+    <string name="title_site">论坛</string>
+    <string name="title_wiki">维基</string>
 </resources>
