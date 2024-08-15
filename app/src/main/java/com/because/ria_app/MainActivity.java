@@ -1,23 +1,33 @@
 package com.because.ria_app;
 
 import android.annotation.SuppressLint;
-
 import android.os.Bundle;
 import android.view.MenuItem;
-
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.ui.AppBarConfiguration;
 import com.because.ria_app.databinding.ActivityMainBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import android.Manifest;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private WebView webView;
-
+    private ValueCallback<Uri[]> mFilePathCallback;  // 文件路径回调
+    private static final int FILECHOOSER_RESULTCODE = 2; // 请求码
+    private ActivityResultLauncher<Intent> filePickerLauncher;
 
     @SuppressLint("NonConstantResourceId")
     @Override
@@ -48,6 +58,21 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setMixedContentMode(webSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
 
+        // 添加 WebViewClient 和 WebChromeClient
+        webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+                                       // For Android >= 5.0
+                                       public boolean onShowFileChooser(ValueCallback<Uri[]> filePathCallback,
+                                                                        FileChooserParams fileChooserParams) {
+                                           if (mFilePathCallback != null) {
+                                               mFilePathCallback.onReceiveValue(null);
+                                           }
+                                           mFilePathCallback = filePathCallback;
+                                           showFileChooser(filePathCallback, fileChooserParams.getFilenameHint());
+                                           return true;
+                                       }
+                                   });
+
         
         BottomNavigationView navView = binding.navView;
 
@@ -60,13 +85,57 @@ public class MainActivity extends AppCompatActivity {
 
         // 添加监听器以处理点击事件
         navView.setOnItemSelectedListener(this::onNavigationItemSelected);
-        // 注入JavaScript接口
-        webView.addJavascriptInterface(new JsInterface(this), "Android");
 
         // 默认加载第一个页面
         loadUrl("https://bbs.ria.red/checkin");
     }
 
+
+    private void showFileChooser(ValueCallback<Uri[]> filePathCallback, String acceptType) {
+        Intent intent = createFilePickerIntent(acceptType);
+        if (Build.VERSION.SDK_INT < 30) {
+            // For API levels below 30, use startActivityForResult
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(intent, FILECHOOSER_RESULTCODE);
+
+        } else {
+            // For API level 30 and above, use ActivityResultLauncher
+            filePickerLauncher.launch(intent);
+        }
+    }
+
+    private Intent createFilePickerIntent(String acceptType) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*"); // 或者根据 acceptType 设置特定类型
+        return intent;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILECHOOSER_RESULTCODE) {
+            if (mFilePathCallback == null) {
+                return;
+            }
+            Uri result = null;
+            if (resultCode != RESULT_OK) {
+                mFilePathCallback.onReceiveValue(null);
+                return;
+            }
+            if (data == null) {
+                mFilePathCallback.onReceiveValue(null);
+                return;
+            }
+            result = data.getData();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mFilePathCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            } else {
+                mFilePathCallback.onReceiveValue(new Uri[]{result});
+            }
+            mFilePathCallback = null;
+        }
+    }
 
     private void loadUrl(String url) {
         webView.loadUrl(url);
