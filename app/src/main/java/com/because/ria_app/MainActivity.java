@@ -1,16 +1,13 @@
 package com.because.ria_app;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
+
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.webkit.ValueCallback;
-import android.webkit.WebResourceRequest;
+
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import androidx.activity.result.contract.ActivityResultContracts;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.ui.AppBarConfiguration;
 import com.because.ria_app.databinding.ActivityMainBinding;
